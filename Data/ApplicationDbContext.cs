@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TestingSoftwareAPI.Models;
 
 namespace TestingSoftwareAPI.Data
 {
@@ -8,5 +9,12 @@ namespace TestingSoftwareAPI.Data
             : base(options)
         {
         }
+        public DbSet<ActionHistory> ActionHistory { get; set; } = default!;
+        public DbSet<Exam> Exam { get; set; } = default!;
+        public DbSet<ExamResult> ExamResult { get; set; } = default!;
+        public DbSet<RegistrationCode> RegistrationCode { get; set; } = default!;
+        public DbSet<Student> Student { get; set; } = default!;
+        public DbSet<StudentExam> StudentExam { get; set; } = default!;
+        public DbSet<SubjectExams> SubjectExams { get; set; } = default!;
     }
 }
