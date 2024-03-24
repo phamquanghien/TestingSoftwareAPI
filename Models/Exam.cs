@@ -27,5 +27,6 @@ namespace TestingSoftwareAPI.Models
         public bool? Status { get; set; } = false;
         [Display(Name = "Phách bắt đầu")]
         public int StartRegistrationCode { get; set; } = 10000;
+        public bool IsAutoGenRegistrationCode { get; set; } = false;
     }
 }
