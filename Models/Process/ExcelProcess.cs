@@ -64,19 +64,17 @@ namespace TestingSoftwareAPI.Models.Process
         {
             //string[] columnNamesToClone = { "Column0", "Column2", "Column3", "Column4" };
             DataTable clonedTable = originalDataTable.Copy();
+            clonedTable.Columns.RemoveAt(12);
+            clonedTable.Columns.RemoveAt(11);
+            clonedTable.Columns.RemoveAt(10);
+            clonedTable.Columns.RemoveAt(9);
+            clonedTable.Columns.RemoveAt(8);
+            clonedTable.Columns.RemoveAt(7);
+            clonedTable.Columns.RemoveAt(6);
+            clonedTable.Columns.RemoveAt(5);
+            clonedTable.Columns.RemoveAt(1);
             var distinctDataTable = clonedTable.Clone();
             try {
-                clonedTable.Columns.RemoveAt(12);
-                clonedTable.Columns.RemoveAt(11);
-                clonedTable.Columns.RemoveAt(10);
-                clonedTable.Columns.RemoveAt(9);
-                clonedTable.Columns.RemoveAt(8);
-                clonedTable.Columns.RemoveAt(7);
-                clonedTable.Columns.RemoveAt(6);
-                clonedTable.Columns.RemoveAt(5);
-                clonedTable.Columns.RemoveAt(1);
-
-                
                 var uniqueRows = new HashSet<string>();
                 foreach (DataRow row in clonedTable.Rows)
                 {
@@ -85,7 +83,8 @@ namespace TestingSoftwareAPI.Models.Process
                         distinctDataTable.ImportRow(row);
                     }
                 }
-            } catch{}
+            } catch{
+            }
             return distinctDataTable;
         }
     }
