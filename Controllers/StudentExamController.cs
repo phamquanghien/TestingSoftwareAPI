@@ -161,9 +161,7 @@ namespace TestingSoftwareAPI.Controllers
                                         StudentCode = row.Field<string>(0),
                                         FirstName = row.Field<string>(1),
                                         LastName = row.Field<string>(2),
-                                        BirthDay = row.Field<string>(3),
-                                        IsActive = true,
-                                        IsDelete = false
+                                        BirthDay = row.Field<string>(3)
                                     });
                     await _context.Student.AddRangeAsync(newStudents);
                     var newStudentExams = dataFromExcel.AsEnumerable()
@@ -179,8 +177,7 @@ namespace TestingSoftwareAPI.Controllers
                                             LessonStart = row.Field<string>(10),
                                             LessonNumber = row.Field<string>(11),
                                             ExamBag = Convert.ToInt32(row.Field<string>(12)),
-                                            ExamId = examId,
-                                            IsActive = true
+                                            ExamId = examId
                                         });
                     await _context.StudentExam.AddRangeAsync(newStudentExams);
                     // //save data to database with bulk copy
