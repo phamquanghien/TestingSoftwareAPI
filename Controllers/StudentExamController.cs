@@ -146,14 +146,18 @@ namespace TestingSoftwareAPI.Controllers
         {
             var dataFromExcel =  _excelProcess.ExcelToDataTable(fileLocation);
             var studentDataTable =  _excelProcess.GetStudentTableDistinct(dataFromExcel);
+            var subjectDataTable =  _excelProcess.GetSubjectTableDistinct(dataFromExcel);
             if(studentDataTable.Rows.Count > 0) {
                 if(isOverWrite){
                     await _context.BulkDeleteAsync(await _context.StudentExam.Where(m => m.ExamId == examId).ToListAsync());
                 }
                 //get list Student code
                 var existingStudentCodes = await _context.Student.Select(m => m.StudentCode).ToListAsync();
+                //get list Subject code
+                var existingSubjectCodes = await _context.Subject.Select(m => m.SubjectCode).ToListAsync();
                 //get list student do not exist in database at studentDataTable
                 try {
+                    //add list new student
                     var newStudents = studentDataTable.AsEnumerable()
                                     .Where(row => !existingStudentCodes.Contains(row.Field<string>(0)))
                                     .Select(row => new Student
@@ -164,6 +168,16 @@ namespace TestingSoftwareAPI.Controllers
                                         BirthDay = row.Field<string>(3)
                                     });
                     await _context.Student.AddRangeAsync(newStudents);
+                    //add list new subject
+                    var newSubjects = subjectDataTable.AsEnumerable()
+                                    .Where(row => !existingSubjectCodes.Contains(row.Field<string>(0)))
+                                    .Select(row => new Subject
+                                    {
+                                        SubjectCode = row.Field<string>(0),
+                                        SubjectName = row.Field<string>(1)
+                                    });
+                    await _context.Subject.AddRangeAsync(newSubjects);
+                    //add list new studentExam
                     var newStudentExams = dataFromExcel.AsEnumerable()
                                         .Select( row => new StudentExam
                                         {
@@ -171,7 +185,7 @@ namespace TestingSoftwareAPI.Controllers
                                             SubjectCode = row.Field<string>(1),
                                             IdentificationNumber = row.Field<string>(5),
                                             ClassName = row.Field<string>(6),
-                                            SubjectName = row.Field<string>(7),
+                                            // SubjectName = row.Field<string>(7),
                                             TestDay = row.Field<string>(8),
                                             TestRoom = row.Field<string>(9),
                                             LessonStart = row.Field<string>(10),

@@ -16,5 +16,6 @@ namespace TestingSoftwareAPI.Data
         public DbSet<Student> Student { get; set; } = default!;
         public DbSet<StudentExam> StudentExam { get; set; } = default!;
         public DbSet<SubjectExams> SubjectExams { get; set; } = default!;
+        public DbSet<Subject> Subject { get; set; } = default!;
     }
 }

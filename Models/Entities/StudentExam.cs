@@ -10,20 +10,14 @@ namespace TestingSoftwareAPI.Models
         [Key]
         public Guid StudentExamID { get; set; }
         [Required]
-        public string SubjectCode { get; set; }
-        [Required]
         public string? IdentificationNumber { get; set; }
         public string? ClassName { get; set; }
-        [Required]
-        public string SubjectName { get; set; }
-
         public string? TestDay { get; set; }
-
         public string? TestRoom { get; set; }
         [Required]
-        public string LessonStart { get; set; }
+        public string? LessonStart { get; set; }
         [Required]
-        public string LessonNumber { get; set; }
+        public string? LessonNumber { get; set; }
 
         public int ExamId { get; set; }
         public bool IsActive { get; set; } = true;
@@ -33,5 +27,9 @@ namespace TestingSoftwareAPI.Models
         public string StudentCode { get; set; }
         [ForeignKey("StudentCode")]
         public Student? Student { get; set; }
+        [Required]
+        public string? SubjectCode { get; set; }
+        [ForeignKey("SubjectCode")]
+        public Subject? Subject { get; set; }
     }
 }

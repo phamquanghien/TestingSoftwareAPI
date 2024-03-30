@@ -18,10 +18,12 @@ namespace TestingSoftwareAPI.Models
         [MaxLength(5)]
         public string ReviewScore { get; set; }
         public int ExamId { get; set; }
-        [Required]
-        public string SubjectCode { get; set; }
         public bool IsActive { get; set; }
         public int ExamBag { get; set; }
         public bool? IsReview { get; set; }
+        [Required]
+        public string? SubjectCode { get; set; }
+        [ForeignKey("SubjectCode")]
+        public Subject? Subject { get; set; }
     }
 }
