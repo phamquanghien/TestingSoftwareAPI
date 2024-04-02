@@ -37,7 +37,7 @@ namespace TestingSoftwareAPI.Migrations
 
                     b.HasKey("ActionHistoryID");
 
-                    b.ToTable("ActionHistories");
+                    b.ToTable("ActionHistories", (string)null);
                 });
 
             modelBuilder.Entity("TestingSoftwareAPI.Models.Exam", b =>
@@ -78,7 +78,7 @@ namespace TestingSoftwareAPI.Migrations
 
                     b.HasKey("ExamId");
 
-                    b.ToTable("Exam");
+                    b.ToTable("Exam", (string)null);
                 });
 
             modelBuilder.Entity("TestingSoftwareAPI.Models.ExamResult", b =>
@@ -130,7 +130,7 @@ namespace TestingSoftwareAPI.Migrations
 
                     b.HasIndex("SubjectCode");
 
-                    b.ToTable("ExamResults");
+                    b.ToTable("ExamResults", (string)null);
                 });
 
             modelBuilder.Entity("TestingSoftwareAPI.Models.RegistrationCode", b =>
@@ -154,7 +154,7 @@ namespace TestingSoftwareAPI.Migrations
 
                     b.HasIndex("StudentExamID");
 
-                    b.ToTable("RegistrationCodes");
+                    b.ToTable("RegistrationCodes", (string)null);
                 });
 
             modelBuilder.Entity("TestingSoftwareAPI.Models.Student", b =>
@@ -181,7 +181,7 @@ namespace TestingSoftwareAPI.Migrations
 
                     b.HasKey("StudentCode");
 
-                    b.ToTable("Students");
+                    b.ToTable("Students", (string)null);
                 });
 
             modelBuilder.Entity("TestingSoftwareAPI.Models.StudentExam", b =>
@@ -234,7 +234,7 @@ namespace TestingSoftwareAPI.Migrations
 
                     b.HasIndex("SubjectCode");
 
-                    b.ToTable("StudentExams");
+                    b.ToTable("StudentExams", (string)null);
                 });
 
             modelBuilder.Entity("TestingSoftwareAPI.Models.Subject", b =>
@@ -254,7 +254,7 @@ namespace TestingSoftwareAPI.Migrations
 
                     b.HasKey("SubjectCode");
 
-                    b.ToTable("Subjects");
+                    b.ToTable("Subjects", (string)null);
                 });
 
             modelBuilder.Entity("TestingSoftwareAPI.Models.SubjectExams", b =>
@@ -297,7 +297,7 @@ namespace TestingSoftwareAPI.Migrations
 
                     b.HasIndex("SubjectCode");
 
-                    b.ToTable("SubjectExams");
+                    b.ToTable("SubjectExams", (string)null);
                 });
 
             modelBuilder.Entity("TestingSoftwareAPI.Models.ExamResult", b =>

@@ -6,7 +6,6 @@ namespace TestingSoftwareAPI.Models.Process
     {
         public int[] RandomDistinctArray(int minValue, int quantity)
         {
-            Stopwatch stw = new Stopwatch();
             int[] returnArray = new int[quantity];
             Random rd = new Random();
             for(int i = 0; i < quantity; i++)

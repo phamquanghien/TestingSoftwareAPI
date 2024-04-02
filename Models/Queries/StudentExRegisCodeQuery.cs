@@ -1,3 +1,4 @@
+using System.Security.AccessControl;
 using Microsoft.EntityFrameworkCore;
 using TestingSoftwareAPI.Data;
 using System.Linq;
@@ -69,6 +70,21 @@ namespace TestingSoftwareAPI.Models.Queries
             int[] A = _randomValue.RandomDistinctArray(GetStartRegistrationCode(examID), unregisteredCodeList.Count);
             //tra ve viewmodel
             return A;
+        }
+        public List<RegistrationCode> getListUnregisteredCodeByExamID(int examID)
+        {
+            var result = new List<RegistrationCode>();
+            var listStudentExamID = GetUnregisteredCodeByExamID(examID);
+            var randomCode = GenerateExamCode(examID);
+            for(int i=0; i < listStudentExamID.Count; i++)
+            {
+                var regisCode = new RegistrationCode();
+                regisCode.RegistrationCodeNumber = randomCode[i];
+                regisCode.StudentExamID = listStudentExamID[i];
+                regisCode.ExamId = examID;
+                result.Add(regisCode);
+            }
+            return result;
         }
     }
 }

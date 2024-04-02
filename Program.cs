@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TestingSoftwareAPI.Data;
+using TestingSoftwareAPI.Models.Queries;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -9,6 +10,7 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<StudentExRegisCodeQuery>();
 // builder.Services.AddAutoMapper(typeof(Program));
 builder.Services.AddCors( options => {
     options.AddPolicy("CorsPolicy",

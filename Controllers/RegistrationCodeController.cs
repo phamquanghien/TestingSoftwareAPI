@@ -2,11 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using EFCore.BulkExtensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TestingSoftwareAPI.Data;
 using TestingSoftwareAPI.Models;
+using TestingSoftwareAPI.Models.Process;
+using TestingSoftwareAPI.Models.Queries;
 
 namespace TestingSoftwareAPI.Controllers
 {
@@ -15,10 +18,12 @@ namespace TestingSoftwareAPI.Controllers
     public class RegistrationCodeController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
-
-        public RegistrationCodeController(ApplicationDbContext context)
+        private readonly StudentExRegisCodeQuery _studentQuery;
+        RandomValue rdValue = new RandomValue();
+        public RegistrationCodeController(ApplicationDbContext context, StudentExRegisCodeQuery studentExRegisCodeQuery)
         {
             _context = context;
+            _studentQuery = studentExRegisCodeQuery;
         }
 
         // GET: api/RegistrationCode
@@ -42,7 +47,7 @@ namespace TestingSoftwareAPI.Controllers
             return registrationCode;
         }
         [HttpGet("count/{id}")]
-        public async Task<ActionResult<StudentExam>> CountRegistrationCode(int id)
+        public async Task<ActionResult<RegistrationCode>> CountRegistrationCode(int id)
         {
             var countRegistrationCode = await _context.RegistrationCode.Where(m => m.ExamId == id).CountAsync();
             return Ok(countRegistrationCode);
@@ -77,6 +82,32 @@ namespace TestingSoftwareAPI.Controllers
             }
 
             return NoContent();
+        }
+        [HttpPut("code-generation")]
+        public async Task<IActionResult> RegistrationCodeGeneration(int examId, bool isOverGenRegCode)
+        {
+            var exam = await _context.Exam.FindAsync(examId);
+            if (exam == null)
+            {
+                return NotFound();
+            }
+            else if(exam.Status == true) return Ok("Kỳ thi đã bị khoá, vui lòng liên hệ quản trị viên!");
+            else {
+                var studentExams = _studentQuery.GetStudentExamByExamID(examId);
+                if(studentExams.Result.Count==0) {
+                    return Ok("Cần nhập danh sách thí sinh dự thi trước khi sinh phách!");
+                }
+                else {
+                    if(isOverGenRegCode) {
+                        await _context.BulkDeleteAsync(await _context.RegistrationCode.Where(m => m.ExamId == examId).ToListAsync());
+                    }
+                    var list = _studentQuery.getListUnregisteredCodeByExamID(examId);
+                    await _context.RegistrationCode.AddRangeAsync (list);
+                    await _context.BulkSaveChangesAsync();
+                    
+                    return Ok("Sinh thành công " + list.Count + " phách");
+                }
+            }
         }
 
         // POST: api/RegistrationCode
