@@ -11,5 +11,7 @@ namespace TestingSoftwareAPI.Models.ViewModel
         public string? FirstName { get; set; }
         public string SubjectCode { get; set; }
         public string SubjectName { get; set; }
+        public string ExamCode { get; set; }
+        public int ExamBag { get; set; }
     }
 }

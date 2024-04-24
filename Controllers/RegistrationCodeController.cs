@@ -1,15 +1,25 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Reflection.Metadata;
 using EFCore.BulkExtensions;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TestingSoftwareAPI.Data;
 using TestingSoftwareAPI.Models;
 using TestingSoftwareAPI.Models.Process;
 using TestingSoftwareAPI.Models.Queries;
+using TestingSoftwareAPI.Models.ViewModel;
+using iText.IO.Font;
+using iText.Kernel.Font;
+using iText.Kernel.Geom;
+using iText.Kernel.Pdf;
+using iText.Layout;
+using iText.Layout.Borders;
+using iText.Layout.Element;
+using iText.Layout.Properties;
+using iText.Barcodes;
+using iText.Kernel.Pdf.Xobject;
+using iText.Kernel.Colors;
+using iText.IO.Font.Constants;
+using System.Data.Common;
 
 namespace TestingSoftwareAPI.Controllers
 {
@@ -136,7 +146,232 @@ namespace TestingSoftwareAPI.Controllers
 
             return NoContent();
         }
+        
+        [HttpGet("download-registration-code-file")]
+        public IActionResult DownloadRegistrationCodeFile()
+        {
+            var result = (from stdEx in _context.StudentExam
+                        join std in _context.Student
+                            on stdEx.StudentCode equals std.StudentCode
+                        join regCode in _context.RegistrationCode
+                            on stdEx.StudentExamID equals regCode.StudentExamID
+                        join subject in _context.Subject
+                            on stdEx.SubjectCode equals subject.SubjectCode
+                        join exam in _context.Exam
+                            on stdEx.ExamId equals exam.ExamId
+                        where stdEx.ExamId == 1
+                        select new RegistrationCodeListVM
+                        {
+                            RegistrationCodeNumber = regCode.RegistrationCodeNumber,
+                            StudentExamID = stdEx.StudentExamID,
+                            ExamId = stdEx.ExamId,
+                            StudentCode = stdEx.StudentCode,
+                            LastName = std.LastName,
+                            FirstName = std.FirstName,
+                            SubjectCode = stdEx.SubjectCode,
+                            SubjectName = subject.SubjectName,
+                            ExamBag = stdEx.ExamBag,
+                            ExamCode = exam.ExamCode
+                        }).ToList().Take(100);
+            using (MemoryStream stream = new MemoryStream())
+            {
+                PdfFont font = PdfFontFactory.CreateFont("Uploads/fonts/Arial.ttf", PdfEncodings.IDENTITY_H);
+                var writer = new PdfWriter(stream);
+                var pdf = new PdfDocument(writer);
+                pdf.SetDefaultPageSize(PageSize.A4);
+                var document = new iText.Layout.Document(pdf, PageSize.A4.Rotate());
+                document.SetMargins(10,10,10,10);
+                Table table = new Table(UnitValue.CreatePercentArray(4)).UseAllAvailableWidth();
+                float columnWidth = (float)(PageSize.A4.GetWidth() / 2.0);
+                float columnHeight = (float)(PageSize.A4.GetHeight() / 28.0);
+                int count = 0;
+                foreach (var item in result)
+                {
+                    for(int i = 0; i < 4; i++)
+                    {
+                        if(i==0 || i == 2)
+                        {
+                            Cell studentCodeCell = new Cell().SetHeight(columnHeight).Add(new Paragraph($"{++count}-{item.StudentCode} - {item.RegistrationCodeNumber}\n {item.FirstName} {item.LastName}")).SetFont(font)
+                                                .SetFontSize(8).SetTextAlignment(TextAlignment.CENTER);
+                            table.AddCell(studentCodeCell);
+                        } else {
+                            Cell registrationCodeCell = new Cell().SetWidth(columnWidth).SetHeight(columnHeight).SetBorder(Border.NO_BORDER).SetTextAlignment(TextAlignment.CENTER);
+                            BarcodeQRCode qrCode = new BarcodeQRCode(item.RegistrationCodeNumber.ToString());
+                            PdfFormXObject qrCodeObject = qrCode.CreateFormXObject(ColorConstants.BLACK, pdf);
+                            Image qrCodeImage = new Image(qrCodeObject);
+                            qrCodeImage.SetWidth(25);
+                            qrCodeImage.SetHeight(25);
+                            Paragraph paragraph1 = new Paragraph();
+                            paragraph1
+                                .SetVerticalAlignment(VerticalAlignment.MIDDLE)
+                                .Add(qrCodeImage)
+                                .Add(new Text($"{item.RegistrationCodeNumber}").SetFont(font).SetFontSize(8));
+                            registrationCodeCell.Add(paragraph1);
+                            table.AddCell(registrationCodeCell);
+                        }
+                    }
+                    
+                }
+                document.Add(table);
+                document.Close();
+                return File(stream.ToArray(), "application/pdf", "Students.pdf");
+            }
+        }
+        
+        [HttpGet("tai-file-phach")]
+        public IActionResult TaiFile()
+        {
+            var result = (from stdEx in _context.StudentExam
+                        join std in _context.Student
+                            on stdEx.StudentCode equals std.StudentCode
+                        join regCode in _context.RegistrationCode
+                            on stdEx.StudentExamID equals regCode.StudentExamID
+                        join subject in _context.Subject
+                            on stdEx.SubjectCode equals subject.SubjectCode
+                        join exam in _context.Exam
+                            on stdEx.ExamId equals exam.ExamId
+                        where stdEx.ExamId == 1
+                        select new RegistrationCodeListVM
+                        {
+                            RegistrationCodeNumber = regCode.RegistrationCodeNumber,
+                            StudentExamID = stdEx.StudentExamID,
+                            ExamId = stdEx.ExamId,
+                            StudentCode = stdEx.StudentCode,
+                            LastName = std.LastName,
+                            FirstName = std.FirstName,
+                            SubjectCode = stdEx.SubjectCode,
+                            SubjectName = subject.SubjectName,
+                            ExamBag = stdEx.ExamBag,
+                            ExamCode = exam.ExamCode
+                        }).ToList().Take(100);
+            using (MemoryStream stream = new MemoryStream())
+            {
+                PdfFont font = PdfFontFactory.CreateFont("Uploads/fonts/Arial.ttf", PdfEncodings.IDENTITY_H);
+                var writer = new PdfWriter(stream);
+                var pdf = new PdfDocument(writer);
+                pdf.SetDefaultPageSize(PageSize.A4);
+                var document = new iText.Layout.Document(pdf, PageSize.A4.Rotate());
+                document.SetMargins(10,10,10,10);
+                PdfFont f = PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
+                float columnWidth = (float)(PageSize.A4.GetWidth() / 2.0);
+                float columnHeight = (float)(PageSize.A4.GetHeight() / 30.0);
+                List<Table> mainColumns = new List<Table>();
+                for (int i = 0; i < 2; i++)
+                {
+                    Table mainColumn = new Table(UnitValue.CreatePercentArray(2)).UseAllAvailableWidth();
+                    mainColumn.SetBorder(Border.NO_BORDER);
+                    mainColumns.Add(mainColumn);
+                }
+                int count = 0;
+                foreach (var student in result)
+                {
+                    Table currentMainColumn = mainColumns[count % 2];
+                    AddColumnToTable(currentMainColumn, student, font, pdf, count+1);
+                    count++;
+                    if (count % 4 == 0)
+                    {
+                        count = 0;
+                    }
+                }
+                foreach (var mainColumn in mainColumns)
+                {
+                    document.Add(mainColumn);
+                }
 
+                document.Close();
+                return File(stream.ToArray(), "application/pdf", "Students.pdf");
+            }
+        }
+        [HttpGet("Download-file")]
+        public IActionResult DownloadFile(int id)
+        {
+            var result = (from stdEx in _context.StudentExam
+                        join std in _context.Student
+                            on stdEx.StudentCode equals std.StudentCode
+                        join regCode in _context.RegistrationCode
+                            on stdEx.StudentExamID equals regCode.StudentExamID
+                        join subject in _context.Subject
+                            on stdEx.SubjectCode equals subject.SubjectCode
+                        where stdEx.ExamId == id
+                        select new RegistrationCodeListVM
+                        {
+                            RegistrationCodeNumber = regCode.RegistrationCodeNumber,
+                            StudentExamID = stdEx.StudentExamID,
+                            ExamId = stdEx.ExamId,
+                            StudentCode = stdEx.StudentCode,
+                            LastName = std.LastName,
+                            FirstName = std.FirstName,
+                            SubjectCode = stdEx.SubjectCode,
+                            SubjectName = subject.SubjectName
+                        }).ToList().Take(100);
+
+            using (MemoryStream stream = new MemoryStream())
+            {
+                PdfFont font = PdfFontFactory.CreateFont("Uploads/fonts/Arial.ttf", PdfEncodings.IDENTITY_H);
+                var writer = new PdfWriter(stream);
+                var pdf = new PdfDocument(writer);
+                pdf.SetDefaultPageSize(PageSize.A4);
+                var document = new iText.Layout.Document(pdf);
+                document.SetMargins(10,0,10,0);
+
+                int numberOfMainColumns = 2;
+                int numberOfSmallColumns = 2;
+
+                List<Table> mainColumns = new List<Table>();
+
+                for (int i = 0; i < numberOfMainColumns; i++)
+                {
+                    // Tạo một bảng với số lượng cột nhỏ
+                    Table mainColumn = new Table(numberOfSmallColumns, false);
+                    mainColumn.SetBorder(Border.NO_BORDER);
+                    mainColumns.Add(mainColumn);
+                }
+
+                int count = 0;
+                foreach (var student in result)
+                {
+                    Table currentMainColumn = mainColumns[count % numberOfMainColumns];
+                    AddColumnToTable(currentMainColumn, student, font, pdf,count+1);
+                    count++;
+                    if (count % (numberOfMainColumns * numberOfSmallColumns) == 0)
+                    {
+                        count = 0;
+                    }
+                }
+                foreach (var mainColumn in mainColumns)
+                {
+                    // Đặt kích thước của mỗi cột trong bảng
+                    mainColumn.SetWidth(PageSize.A4.GetWidth()/2);
+                    document.Add(mainColumn);
+                }
+                document.Close();
+                return File(stream.ToArray(), "application/pdf", "Students.pdf");
+            }
+        }
+        private void AddColumnToTable(Table currentMainColumn, RegistrationCodeListVM student, PdfFont font, PdfDocument pdf, int stt)
+        {
+            Table currentSmallColumn = new Table(UnitValue.CreatePercentArray(2)).UseAllAvailableWidth();
+            float columnWidth = (float)(PageSize.A4.GetWidth() / 4.0);
+            float columnHeight = (float)(PageSize.A4.GetHeight() / 32.0);
+            Cell studentCodeCell = new Cell().SetWidth(columnWidth).SetHeight(columnHeight).SetBorder(Border.NO_BORDER).Add(new Paragraph($"{stt}-{student.StudentCode} - {student.RegistrationCodeNumber}\n {student.LastName} {student.FirstName}")).SetFont(font)
+                                                .SetFontSize(8).SetTextAlignment(TextAlignment.CENTER);
+            currentSmallColumn.AddCell(studentCodeCell);
+
+            Cell registrationCodeCell = new Cell().SetWidth(columnWidth).SetHeight(columnHeight).SetBorder(Border.NO_BORDER).SetTextAlignment(TextAlignment.CENTER);
+            
+            BarcodeQRCode qrCode = new BarcodeQRCode(student.RegistrationCodeNumber.ToString());
+            PdfFormXObject qrCodeObject = qrCode.CreateFormXObject(ColorConstants.BLACK, pdf);
+            Image qrCodeImage = new Image(qrCodeObject);
+            qrCodeImage.SetWidth(20);
+            qrCodeImage.SetHeight(20);
+            Paragraph paragraph1 = new Paragraph();
+            paragraph1.Add(qrCodeImage);
+            paragraph1.Add(new Text($"{student.RegistrationCodeNumber}")).SetFont(font);
+            registrationCodeCell.Add(paragraph1);
+            currentSmallColumn.AddCell(registrationCodeCell);
+
+            currentMainColumn.AddCell(new Cell().Add(currentSmallColumn));
+        }
         private bool RegistrationCodeExists(Guid id)
         {
             return _context.RegistrationCode.Any(e => e.RegistrationCodeID == id);
