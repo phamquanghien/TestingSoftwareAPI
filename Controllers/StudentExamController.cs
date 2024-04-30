@@ -23,6 +23,7 @@ namespace TestingSoftwareAPI.Controllers
         private ExcelProcess _excelProcess = new ExcelProcess();
         private StudentProcess _studentProcess = new StudentProcess();
         private SubjectProcess _subjectProcess = new SubjectProcess();
+        private SubjectExamProcess _subjectExamProcess = new SubjectExamProcess();
         public StudentExamController(ApplicationDbContext context, IWebHostEnvironment hostingEnvironment)
         {
             _context = context;
@@ -46,6 +47,37 @@ namespace TestingSoftwareAPI.Controllers
             }
 
             return studentExam;
+        }
+        [HttpGet("get-list-by-examId")]
+        public async Task<ActionResult<IEnumerable<StudentExam>>> GetStudentExamByExamID(int examID, int examBag)
+        {
+            // return await _context.StudentExam.Where(x => x.ExamId == id && x.ExamBag == examBag).ToListAsync();
+            return await _context.StudentExam
+                .Include(m => m.Student) // Bao gồm thông tin của Student
+                .Where (m => m.ExamId == examID && m.ExamBag == examBag)
+                .Select(m => new StudentExam
+                {
+                    StudentExamID = m.StudentExamID,
+                    IdentificationNumber = m.IdentificationNumber,
+                    ClassName = m.ClassName,
+                    TestDay = m.TestDay,
+                    TestRoom = m.TestRoom,
+                    LessonStart = m.LessonStart,
+                    LessonNumber = m.LessonNumber,
+                    ExamId = m.ExamId,
+                    IsActive = m.IsActive,
+                    ExamBag = m.ExamBag,
+                    StudentCode = m.StudentCode,
+                    Student = new Student
+                    {
+                        StudentCode = m.Student.StudentCode,
+                        LastName = m.Student.LastName,
+                        FirstName = m.Student.FirstName
+                    },
+                    SubjectCode = m.SubjectCode,
+                    Subject = m.Subject
+                })
+                .ToListAsync();
         }
         
         // GET: api/StudentExam/5
@@ -86,6 +118,45 @@ namespace TestingSoftwareAPI.Controllers
 
             return NoContent();
         }
+        [HttpPut("update-multiple")]
+        public async Task<IActionResult> UpdateMultipleStudentExams(List<StudentExam> studentExams)
+        {
+            if (studentExams == null || studentExams.Count == 0)
+            {
+                return BadRequest("Danh sách studentExams trống.");
+            }
+            try
+            {
+                var checkData = true;
+                var examID = studentExams[0].ExamId;
+                var examBag = studentExams[0].ExamBag;
+                foreach (var studentExam in studentExams)
+                {
+                    if(studentExam.ExamId != examID || studentExam.ExamBag != examBag) checkData = false;
+                    _context.Entry(studentExam).State = EntityState.Modified;
+                }
+                if (checkData) {
+                    var subjectExamID = await _context.SubjectExam.Where(m => m.ExamId == examID && m.ExamBag == examBag).Select(m => m.SubjectExamID).FirstAsync();
+                    var updateSubjectExam = await _context.SubjectExam.FindAsync(subjectExamID);
+                    if (updateSubjectExam != null)
+                    {
+                        updateSubjectExam.IsEnterCandidatesAbsent = true;
+                        updateSubjectExam.UserEnterCandidatesAbsent = "Username Login";
+                        _context.Entry(updateSubjectExam).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                else return BadRequest("Thông tin túi bài thi không hợp lệ, vui lòng thử lại sau!");
+                
+            }
+            catch
+            {
+                // Xử lý lỗi
+                return StatusCode(StatusCodes.Status500InternalServerError, "Đã xảy ra lỗi khi cập nhật danh sách studentExams.");
+            }
+            return NoContent();
+        }
+
 
         // POST: api/StudentExam
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
@@ -130,7 +201,7 @@ namespace TestingSoftwareAPI.Controllers
             try
             {
                 string uploadsFolder = Path.Combine("Uploads","Excels");
-                string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
+                string uniqueFileName = "File" + Guid.NewGuid().ToString() + "_" + file.FileName;
                 string filePath = Path.Combine(uploadsFolder, uniqueFileName);
                 Directory.CreateDirectory(uploadsFolder);
                 
@@ -149,7 +220,6 @@ namespace TestingSoftwareAPI.Controllers
         }
         private async Task<string> ImportDataFromExcel(int examId, string fileLocation, bool isOverWrite, bool checkData)
         {
-            //cần gửi dữ liệu "checkData" từ reactjs
             string messageResult = "";
             if(checkData) {
                 messageResult = await CheckDataFromExcel(fileLocation);
@@ -159,14 +229,18 @@ namespace TestingSoftwareAPI.Controllers
                 var dataFromExcel =  _excelProcess.ExcelToDataTable(fileLocation);
                 var studentDataTable =  _studentProcess.GetStudentTableDistinct(dataFromExcel);
                 var subjectDataTable =  _subjectProcess.GetSubjectTableDistinct(dataFromExcel);
+                var examBagDataTable = _subjectExamProcess.GetSubjectExamTableDistinct(dataFromExcel);
                 if(studentDataTable.Rows.Count > 0) {
                     if(isOverWrite){
                         await _context.BulkDeleteAsync(await _context.StudentExam.Where(m => m.ExamId == examId).ToListAsync());
+                        await _context.BulkDeleteAsync(await _context.SubjectExam.Where(m => m.ExamId == examId).ToListAsync());
                     }
                     //get list Student code
                     var existingStudentCodes = await _context.Student.Select(m => m.StudentCode).ToListAsync();
                     //get list Subject code
                     var existingSubjectCodes = await _context.Subject.Select(m => m.SubjectCode).ToListAsync();
+                    //get list Subject Bags
+                    var existingExamBags = await _context.SubjectExam.Where(m => m.ExamId == examId).ToListAsync();
                     //get list student do not exist in database at studentDataTable
                     try {
                         //add list new student
@@ -206,7 +280,17 @@ namespace TestingSoftwareAPI.Controllers
                                                 ExamId = examId
                                             });
                         await _context.StudentExam.AddRangeAsync(newStudentExams);
-                        // //save data to database with bulk copy
+                        //add list distinct subjectExam
+                        var newSubjectBag = examBagDataTable.AsEnumerable()
+                                        .Where(row => !existingExamBags.Any(m => m.SubjectCode ==row.Field<string>(0) && m.ExamBag == Convert.ToInt32(row.Field<string>(1))))
+                                        .Select(row => new SubjectExam
+                                        {
+                                            ExamId = examId,
+                                            ExamBag = Convert.ToInt32(row.Field<string>(1)),
+                                            SubjectCode = row.Field<string>(0)
+                                        });
+                        await _context.SubjectExam.AddRangeAsync(newSubjectBag);
+                        //save data to database with bulk copy
                         await _context.BulkSaveChangesAsync();
                         messageResult = "Import thành công " + dataFromExcel.Rows.Count + " sinh viên";
                     } catch {

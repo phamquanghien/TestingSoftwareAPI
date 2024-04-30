@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TestingSoftwareAPI.Data;
 
@@ -10,9 +11,11 @@ using TestingSoftwareAPI.Data;
 namespace TestingSoftwareAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240427075747_Alter_StudentExam")]
+    partial class Alter_StudentExam
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.3");
@@ -95,6 +98,9 @@ namespace TestingSoftwareAPI.Migrations
                     b.Property<int>("ExamBag")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("ExamCodeNumber")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("ExamId")
                         .HasColumnType("INTEGER");
 
@@ -112,9 +118,6 @@ namespace TestingSoftwareAPI.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool?>("IsReview")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("RegistrationCodeNumber")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("ReviewScore")
@@ -257,7 +260,7 @@ namespace TestingSoftwareAPI.Migrations
                     b.ToTable("Subjects");
                 });
 
-            modelBuilder.Entity("TestingSoftwareAPI.Models.SubjectExam", b =>
+            modelBuilder.Entity("TestingSoftwareAPI.Models.SubjectExams", b =>
                 {
                     b.Property<Guid>("SubjectExamID")
                         .ValueGeneratedOnAdd()
@@ -347,7 +350,7 @@ namespace TestingSoftwareAPI.Migrations
                     b.Navigation("Subject");
                 });
 
-            modelBuilder.Entity("TestingSoftwareAPI.Models.SubjectExam", b =>
+            modelBuilder.Entity("TestingSoftwareAPI.Models.SubjectExams", b =>
                 {
                     b.HasOne("TestingSoftwareAPI.Models.Subject", "Subject")
                         .WithMany()

@@ -25,7 +25,12 @@ namespace TestingSoftwareAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Exam>>> GetExam()
         {
-            return await _context.Exam.ToListAsync();
+            return await _context.Exam.Where(m => m.IsDelete == false).ToListAsync();
+        }
+        [HttpGet("get-exam-by-isActive")]
+        public async Task<ActionResult<IEnumerable<Exam>>> GetExamByIsActive()
+        {
+            return await _context.Exam.Where(m => m.Status == false).ToListAsync();
         }
 
         // GET: api/Exam/5
@@ -93,8 +98,12 @@ namespace TestingSoftwareAPI.Controllers
             {
                 return NotFound();
             }
-
-            _context.Exam.Remove(exam);
+            var countStudentExam = _context.StudentExam.Where(x => x.ExamId == id).Select(m => m.StudentExamID).Count();
+            if (countStudentExam < 1) _context.Exam.Remove(exam);
+            else {
+                exam.IsDelete = true;
+                _context.Entry(exam).State = EntityState.Modified;
+            }
             await _context.SaveChangesAsync();
 
             return NoContent();

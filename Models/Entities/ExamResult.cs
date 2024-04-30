@@ -8,7 +8,7 @@ namespace TestingSoftwareAPI.Models
     {
         [Key]
         public Guid ExamResultID { get; set; }
-        public int ExamCodeNumber { get; set; }
+        public int RegistrationCodeNumber { get; set; }
         [MaxLength(5)]
         public string ExamResult1 { get; set; }
         [MaxLength(5)]
