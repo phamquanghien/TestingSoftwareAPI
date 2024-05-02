@@ -20,6 +20,7 @@ using iText.Kernel.Pdf.Xobject;
 using iText.Kernel.Colors;
 using iText.IO.Font.Constants;
 using System.Data.Common;
+using OfficeOpenXml;
 
 namespace TestingSoftwareAPI.Controllers
 {
@@ -147,6 +148,84 @@ namespace TestingSoftwareAPI.Controllers
             return NoContent();
         }
         
+        [HttpGet("download-excel-file")]
+        public async Task<IActionResult> DownloadExcel(int examID, int examBag)
+        {
+            // Truy vấn dữ liệu từ cơ sở dữ liệu
+            var registrationCodeNumbers = await (from regisCode in _context.RegistrationCode
+                                                join stdExam in _context.StudentExam on regisCode.StudentExamID equals stdExam.StudentExamID
+                                                where stdExam.ExamId == examID && stdExam.ExamBag == examBag
+                                                select regisCode.RegistrationCodeNumber).ToListAsync();
+            var listVT = await (from regisCode in _context.RegistrationCode
+                                                join stdExam in _context.StudentExam on regisCode.StudentExamID equals stdExam.StudentExamID
+                                                where stdExam.ExamId == examID && stdExam.ExamBag == examBag && stdExam.IsActive == false
+                                                select regisCode.RegistrationCodeNumber).ToListAsync();
+            var listDT = await (from regisCode in _context.RegistrationCode
+                                                join stdExam in _context.StudentExam on regisCode.StudentExamID equals stdExam.StudentExamID
+                                                where stdExam.ExamId == examID && stdExam.ExamBag == examBag && stdExam.IsActive == true
+                                                select regisCode.RegistrationCodeNumber).ToListAsync();
+
+            // Tạo một workbook Excel mới
+            using (var package = new ExcelPackage())
+            {
+                var worksheet1 = package.Workbook.Worksheets.Add("sheet1");
+                worksheet1.Cells["A1"].Value = "Phach";
+                worksheet1.Cells["B1"].Value = "Diem1";
+                worksheet1.Cells["C1"].Value = "Diem2";
+                worksheet1.Cells["D1"].Value = "DiemTB";
+                worksheet1.Cells["A2"].LoadFromCollection(registrationCodeNumbers, true);
+                var headerRange1 = worksheet1.Cells["A1:D1"];
+                var dataRange1 = worksheet1.Cells["A1:D" + (registrationCodeNumbers.Count + 1)];
+                dataRange1.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                dataRange1.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                dataRange1.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                dataRange1.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                headerRange1.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                dataRange1.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                
+                var worksheet2 = package.Workbook.Worksheets.Add("sheet2");
+                worksheet2.Cells["A1"].Value = "Phach";
+                worksheet2.Cells["B1"].Value = "Diem1";
+                worksheet2.Cells["C1"].Value = "Diem2";
+                worksheet2.Cells["D1"].Value = "DiemTB";
+                worksheet2.Cells["A2"].LoadFromCollection(listDT, true);
+                var headerRange2 = worksheet2.Cells["A1:D1"];
+                var dataRange2 = worksheet2.Cells["A1:D" + (listDT.Count + 1)];
+                dataRange2.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                dataRange2.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                dataRange2.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                dataRange2.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                headerRange2.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                dataRange2.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+
+                var worksheet3 = package.Workbook.Worksheets.Add("sheet3");
+                worksheet3.Cells["A1"].Value = "Phach";
+                worksheet3.Cells["B1"].Value = "Diem1";
+                worksheet3.Cells["C1"].Value = "Diem2";
+                worksheet3.Cells["D1"].Value = "DiemTB";
+                worksheet3.Cells["A2"].LoadFromCollection(listVT, true);
+                var headerRange3 = worksheet3.Cells["A1:D1"];
+                var dataRange3 = worksheet3.Cells["A1:D" + (listVT.Count + 1)];
+                dataRange3.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                dataRange3.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                dataRange3.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                dataRange3.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                headerRange3.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                dataRange3.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                // Tạo một stream để lưu trữ dữ liệu của tệp Excel
+                var stream = new MemoryStream();
+                
+                // Lưu workbook vào stream
+                package.SaveAs(stream);
+
+                // Thiết lập vị trí của stream về đầu
+                stream.Position = 0;
+
+                // Trả về một file tải xuống có tên "RegistrationCodes.xlsx" và kiểu dữ liệu là "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "RegistrationCodes.xlsx");
+            }
+        }
+
         [HttpGet("download-registration-code-file")]
         public IActionResult DownloadRegistrationCodeFile()
         {
