@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using TestingSoftwareAPI.Data;
 using TestingSoftwareAPI.Models;
 using TestingSoftwareAPI.Models.Process;
+using TestingSoftwareAPI.Models.ViewModel;
 
 namespace TestingSoftwareAPI.Controllers
 {
@@ -107,6 +108,88 @@ namespace TestingSoftwareAPI.Controllers
             return NoContent();
         }
 
+        [HttpPost("scan-registration-code-number")]
+        public async Task<ActionResult<string>> LectureScanRegistrationCodeNumber([FromBody] List<LecturersScanCodeVM> lecturersScanCodes, int examId, int examBag)
+        {
+            string messageResult = "";
+            messageResult = await CheckDataFromListVM(lecturersScanCodes);
+            if(messageResult.Length == 0) {
+                var listVT = await (from regisCode in _context.RegistrationCode
+                            join stdExam in _context.StudentExam on regisCode.StudentExamID equals stdExam.StudentExamID
+                            where stdExam.ExamId == examId && stdExam.ExamBag == examBag && stdExam.IsActive == false
+                            select regisCode.RegistrationCodeNumber).ToListAsync();
+                var listDT = await (from regisCode in _context.RegistrationCode
+                            join stdExam in _context.StudentExam on regisCode.StudentExamID equals stdExam.StudentExamID
+                            where stdExam.ExamId == examId && stdExam.ExamBag == examBag && stdExam.IsActive == true
+                            select regisCode.RegistrationCodeNumber).ToListAsync();
+                List<int> registrationCodeNumberList = new List<int>();
+                for(int i  = 0; i < lecturersScanCodes.Count(); i++)
+                {
+                    registrationCodeNumberList.Add(lecturersScanCodes[i].RegistrationCodeNumber);
+                }
+                var listExcelVT = registrationCodeNumberList.Except(listDT);
+                var listThieuBaiThi = listDT.Except(registrationCodeNumberList);
+                if(listExcelVT.Count() == 0 && listThieuBaiThi.Count() == 0) {
+                    var subjectCode = _context.SubjectExam.Where(m => m.ExamId == examId && m.ExamBag == examBag).FirstOrDefault().SubjectCode;
+                    var importListVT = listVT.Select(registrationCodeNumber => new ExamResult
+                                        {
+                                            RegistrationCodeNumber = registrationCodeNumber,
+                                            ExamResult1 = "V",
+                                            ExamResult2 = "V",
+                                            AverageScore = "V",
+                                            ExamId = examId,
+                                            ExamBag = examBag,
+                                            IsActive = false,
+                                            SubjectCode = subjectCode
+                                        }).ToList();
+                    await _context.ExamResult.AddRangeAsync(importListVT);
+                    var examResultList = lecturersScanCodes.Select(m => new ExamResult {
+                        RegistrationCodeNumber = m.RegistrationCodeNumber,
+                        ExamResult1 = "" + m.ExamResult1,
+                        ExamResult2 = "" + m.ExamResult2,
+                        AverageScore = "" + m.AverageScore,
+                        ExamId = examId,
+                        ExamBag = examBag,
+                        IsActive = true,
+                        SubjectCode = subjectCode
+                    }).ToList();
+                    await _context.ExamResult.AddRangeAsync(examResultList);
+                    //cap nhat thong tin bang SubjectExam
+                    var subjectExamCode = await _context.SubjectExam.Where(m => m.ExamId == examId && m.ExamBag == examBag).Select(m => m.SubjectExamID).FirstOrDefaultAsync();
+                    var updateSubjectExam = await _context.SubjectExam.FindAsync(subjectExamCode);
+                    if (updateSubjectExam == null)
+                    {
+                        messageResult = "Yêu cầu thực hiện không thành công, không thể cập nhật trạng thái túi bài thi. Vui lòng thử lại sau";
+                    } else {
+                        updateSubjectExam.IsMatchingTestScore = true;
+                        updateSubjectExam.UserMatchingTestScore = "Username Login";
+                        _context.Entry(updateSubjectExam).State = EntityState.Modified;
+                        await _context.SaveChangesAsync();
+                        messageResult = "Nhập điểm thành công";
+                    }
+                } else if(listExcelVT.Count() > 0) {
+                    var checkListVT = listExcelVT.Except(listVT);
+                    if(checkListVT.Count() == 0) {
+                        messageResult = "Các sinh viên: ";
+                        foreach(var item in listExcelVT) {
+                            messageResult += item + ", ";
+                        }
+                        messageResult += " đã tích vắng thi nhưng vẫn có điểm, vui lòng liên hệ quản trị viên để được hỗ trợ!";
+                    }
+                    else {
+                        messageResult = "Các mã phách: ";
+                        foreach(var item in checkListVT) {
+                            messageResult += item + ", ";
+                        }
+                        messageResult += " không đúng vui lòng kiểm tra lại";
+                    }
+                } else if(listThieuBaiThi.Count() > 0) {
+                    messageResult = "Còn thiếu " + listThieuBaiThi.Count() + " bài thi hoặc danh sách vắng thi bị sai, vui lòng liên hệ với quản trị viên để được hỗ trợ!";
+                }
+            }
+            return messageResult;
+        }
+
         [HttpPost("upload-file-result")]
         public async Task<IActionResult> Upload(IFormFile file, int examId, int examBag)
         {
@@ -200,8 +283,7 @@ namespace TestingSoftwareAPI.Controllers
                         _context.Entry(updateSubjectExam).State = EntityState.Modified;
                         await _context.SaveChangesAsync();
                         messageResult = "Nhập điểm thành công";
-                    }
-                   
+                    } 
                 }
                 //neu thi sinh bi tich vang nhung van di thi hoac quet ma phach bi sai
                 else if(listExcelVT.Count() > 0) {
@@ -250,6 +332,28 @@ namespace TestingSoftwareAPI.Controllers
             return messageResult;
         }
 
+        private async Task<string> CheckDataFromListVM(List<LecturersScanCodeVM> lecturersScanCode)
+        {
+            string messageResult = "";
+            if (lecturersScanCode.Count() == 0) messageResult = "Dữ liệu chưa có vui lòng kiểm tra lại!";
+            else {
+                for(int i = 0; i < lecturersScanCode.Count(); i++)
+                {
+                    try {
+                        Convert.ToDouble(lecturersScanCode[i].RegistrationCodeNumber.ToString());
+                        Convert.ToDouble(lecturersScanCode[i].ExamResult1.ToString());
+                        Convert.ToDouble(lecturersScanCode[i].ExamResult2.ToString());
+                        Convert.ToDouble(lecturersScanCode[i].AverageScore.ToString());
+                    }
+                    catch {
+                        messageResult += (i+1) +"; ";
+                    }
+                }
+                if(messageResult.Length > 0) messageResult = "Bản ghi: " + messageResult + " không hợp lệ";
+            }
+            
+            return messageResult;
+        }
         private bool ExamResultExists(Guid id)
         {
             return _context.ExamResult.Any(e => e.ExamResultID == id);
