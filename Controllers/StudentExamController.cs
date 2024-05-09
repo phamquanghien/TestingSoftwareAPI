@@ -140,7 +140,13 @@ namespace TestingSoftwareAPI.Controllers
                     var updateSubjectExam = await _context.SubjectExam.FindAsync(subjectExamID);
                     if (updateSubjectExam != null)
                     {
+                        SubjectExam.CandidatesAbsentStatus status = updateSubjectExam.EnterCandidatesAbsentStatus;
                         updateSubjectExam.IsEnterCandidatesAbsent = true;
+                        if(status == SubjectExam.CandidatesAbsentStatus.NotEnteredAbsentList) {
+                            updateSubjectExam.EnterCandidatesAbsentStatus = (SubjectExam.CandidatesAbsentStatus)1;
+                        } else if(status == SubjectExam.CandidatesAbsentStatus.EnteredAbsentList){
+                            updateSubjectExam.EnterCandidatesAbsentStatus = (SubjectExam.CandidatesAbsentStatus)2;
+                        }
                         updateSubjectExam.UserEnterCandidatesAbsent = "Username Login";
                         _context.Entry(updateSubjectExam).State = EntityState.Modified;
                         await _context.SaveChangesAsync();

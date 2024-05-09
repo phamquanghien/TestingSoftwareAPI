@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TestingSoftwareAPI.Data;
@@ -43,10 +38,10 @@ namespace TestingSoftwareAPI.Controllers
             }
             return query;
         }
-        [HttpGet("employee-get-subject-exam")]
-        public async Task<ActionResult<SubjectExam>> EmployeeGetSubjectExamByExamID(int examID, int examBag)
+        [HttpGet("employee-get-by-exam-bag")]
+        public async Task<ActionResult<SubjectExam>> EmployeeGetByExamBag(int examID, int examBag)
         {
-            if (examID == 0 || examID == null || examBag == null)
+            if (examID == 0 || examBag == null)
             {
                 return BadRequest("BadRequest");
             }
@@ -55,6 +50,23 @@ namespace TestingSoftwareAPI.Controllers
                     .Include(m => m.Subject) // Bao gồm thông tin của Subject
                     .Where(m => m.ExamId == examID && m.ExamBag == examBag)
                     .FirstOrDefaultAsync();
+            if(subjectExam == null) {
+                return NotFound();
+            }
+            return subjectExam;
+        }
+        [HttpGet("admin-get-by-subject-code")]
+        public async Task<ActionResult<List<SubjectExam>>> EmployeeGetBySubjectCode(int examID, string subjectCode)
+        {
+            if (examID == 0 || subjectCode == null)
+            {
+                return BadRequest("BadRequest");
+            }
+            
+            var subjectExam = await _context.SubjectExam
+                    .Include(m => m.Subject) // Bao gồm thông tin của Subject
+                    .Where(m => m.ExamId == examID && m.SubjectCode.Contains(subjectCode))
+                    .ToListAsync();
             if(subjectExam == null) {
                 return NotFound();
             }
@@ -104,6 +116,48 @@ namespace TestingSoftwareAPI.Controllers
             }
 
             return NoContent();
+        }
+        [HttpPut("admin-update")]
+        public async Task<string> AdminUpdate(Guid subjectExamID, bool checkData, bool dataUpdate)
+        {
+            if (!SubjectExamsExists(subjectExamID))
+            {
+                return "Dữ liệu không hợp lệ";
+            } else {
+                var subjectExam = await _context.SubjectExam.FindAsync(subjectExamID);
+                if (checkData) {
+                    var IsEnterCandidatesAbsent = subjectExam.IsEnterCandidatesAbsent;
+                    if (IsEnterCandidatesAbsent == true && dataUpdate == false) {
+                        subjectExam.IsEnterCandidatesAbsent = false;
+                        subjectExam.IsMatchingTestScore = false;
+                    } else if (IsEnterCandidatesAbsent == false && dataUpdate == true) {
+                        subjectExam.IsEnterCandidatesAbsent = true;
+                    } else {
+                        return "Dữ liệu không hợp lệ";
+                    }
+                    _context.Entry(subjectExam).State = EntityState.Modified;
+                } else {
+                    var IsMatchingTestScore = subjectExam.IsMatchingTestScore;
+                    if (IsMatchingTestScore == true && dataUpdate == false) {
+                        subjectExam.IsMatchingTestScore = false;
+                    } else if (IsMatchingTestScore == false && dataUpdate == true) {
+                        subjectExam.IsMatchingTestScore = true;
+                        subjectExam.IsEnterCandidatesAbsent = true;
+                    } else {
+                        return "Dữ liệu không hợp lệ";
+                    }
+                    _context.Entry(subjectExam).State = EntityState.Modified;
+                }
+            }
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch
+            {
+                return "Dữ liệu không hợp lệ";
+            }
+            return "Done";
         }
 
         // POST: api/SubjectExam
