@@ -296,33 +296,32 @@ namespace TestingSoftwareAPI.Controllers
                 return File(stream.ToArray(), "application/pdf", "Students.pdf");
             }
         }
-        
         [HttpGet("tai-file-phach")]
-        public IActionResult TaiFile()
+        public IActionResult TaiFile(int examBag, int examId)
         {
             var result = (from stdEx in _context.StudentExam
-                        join std in _context.Student
-                            on stdEx.StudentCode equals std.StudentCode
-                        join regCode in _context.RegistrationCode
-                            on stdEx.StudentExamID equals regCode.StudentExamID
-                        join subject in _context.Subject
-                            on stdEx.SubjectCode equals subject.SubjectCode
-                        join exam in _context.Exam
-                            on stdEx.ExamId equals exam.ExamId
-                        where stdEx.ExamId == 1
-                        select new RegistrationCodeListVM
-                        {
-                            RegistrationCodeNumber = regCode.RegistrationCodeNumber,
-                            StudentExamID = stdEx.StudentExamID,
-                            ExamId = stdEx.ExamId,
-                            StudentCode = stdEx.StudentCode,
-                            LastName = std.LastName,
-                            FirstName = std.FirstName,
-                            SubjectCode = stdEx.SubjectCode,
-                            SubjectName = subject.SubjectName,
-                            ExamBag = stdEx.ExamBag,
-                            ExamCode = exam.ExamCode
-                        }).ToList().Take(100);
+                          join std in _context.Student
+                              on stdEx.StudentCode equals std.StudentCode
+                          join regCode in _context.RegistrationCode
+                              on stdEx.StudentExamID equals regCode.StudentExamID
+                          join subject in _context.Subject
+                              on stdEx.SubjectCode equals subject.SubjectCode
+                          join exam in _context.Exam
+                              on stdEx.ExamId equals exam.ExamId
+                          where stdEx.ExamId == examId && stdEx.ExamBag == examBag
+                          select new RegistrationCodeListVM
+                          {
+                              RegistrationCodeNumber = regCode.RegistrationCodeNumber,
+                              StudentExamID = stdEx.StudentExamID,
+                              ExamId = stdEx.ExamId,
+                              StudentCode = stdEx.StudentCode,
+                              LastName = std.LastName,
+                              FirstName = std.FirstName,
+                              SubjectCode = stdEx.SubjectCode,
+                              SubjectName = subject.SubjectName,
+                              ExamBag = stdEx.ExamBag,
+                              ExamCode = exam.ExamCode
+                          }).ToList();
             using (MemoryStream stream = new MemoryStream())
             {
                 PdfFont font = PdfFontFactory.CreateFont("Uploads/fonts/Arial.ttf", PdfEncodings.IDENTITY_H);
@@ -330,7 +329,7 @@ namespace TestingSoftwareAPI.Controllers
                 var pdf = new PdfDocument(writer);
                 pdf.SetDefaultPageSize(PageSize.A4);
                 var document = new iText.Layout.Document(pdf, PageSize.A4.Rotate());
-                document.SetMargins(10,10,10,10);
+                document.SetMargins(10, 10, 10, 10);
                 PdfFont f = PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
                 float columnWidth = (float)(PageSize.A4.GetWidth() / 2.0);
                 float columnHeight = (float)(PageSize.A4.GetHeight() / 30.0);
@@ -344,17 +343,14 @@ namespace TestingSoftwareAPI.Controllers
                 int count = 0;
                 foreach (var student in result)
                 {
-                    Table currentMainColumn = mainColumns[count % 2];
-                    AddColumnToTable(currentMainColumn, student, font, pdf, count+1);
-                    count++;
-                    if (count % 4 == 0)
-                    {
-                        count = 0;
-                    }
+                    Table currentMainColumn = mainColumns[count % 1];
+                    AddColumnToTable(currentMainColumn, student, font, pdf, count + 1);
+                    count += 1;
+
                 }
-                foreach (var mainColumn in mainColumns)
+                for (int i = 0; i < mainColumns.Count; i++)
                 {
-                    document.Add(mainColumn);
+                    document.Add(mainColumns[i]);
                 }
 
                 document.Close();
