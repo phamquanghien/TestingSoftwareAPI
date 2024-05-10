@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OfficeOpenXml;
 using TestingSoftwareAPI.Data;
 using TestingSoftwareAPI.Models;
+using TestingSoftwareAPI.Models.ViewModel;
 
 namespace TestingSoftwareAPI.Controllers
 {
@@ -56,7 +58,7 @@ namespace TestingSoftwareAPI.Controllers
             return subjectExam;
         }
         [HttpGet("admin-get-by-subject-code")]
-        public async Task<ActionResult<List<SubjectExam>>> EmployeeGetBySubjectCode(int examID, string subjectCode)
+        public async Task<ActionResult<List<SubjectExam>>> AdminGetBySubjectCode(int examID, string subjectCode)
         {
             if (examID == 0 || subjectCode == null)
             {
@@ -66,6 +68,23 @@ namespace TestingSoftwareAPI.Controllers
             var subjectExam = await _context.SubjectExam
                     .Include(m => m.Subject) // Bao gồm thông tin của Subject
                     .Where(m => m.ExamId == examID && m.SubjectCode.Contains(subjectCode))
+                    .ToListAsync();
+            if(subjectExam == null) {
+                return NotFound();
+            }
+            return subjectExam;
+        }
+        [HttpGet("admin-get-by-subject-code-by-examId")]
+        public async Task<ActionResult<List<SubjectExam>>> AdminGetBySubjectCode(int examID)
+        {
+            if (examID == 0)
+            {
+                return BadRequest("BadRequest");
+            }
+            
+            var subjectExam = await _context.SubjectExam
+                    .Include(m => m.Subject) // Bao gồm thông tin của Subject
+                    .Where(m => m.ExamId == examID)
                     .ToListAsync();
             if(subjectExam == null) {
                 return NotFound();
@@ -185,6 +204,58 @@ namespace TestingSoftwareAPI.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+        [HttpGet("download-excel-file")]
+        public async Task<IActionResult> DownloadExcel(int examID, bool isEnterCandidatesAbsent, bool isMatchingTestScore)
+        {
+            var subjectExams = await (from se in _context.SubjectExam
+                                join s in _context.Subject on se.SubjectCode equals s.SubjectCode
+                                where se.ExamId == examID && se.IsEnterCandidatesAbsent == isEnterCandidatesAbsent && se.IsMatchingTestScore == isMatchingTestScore
+                                select new SubjectExamExportVM
+                                {
+                                    SubjectCode = s.SubjectCode,
+                                    SubjectName = s.SubjectName,
+                                    ExamBag = se.ExamBag,
+                                    IsEnterCandidatesAbsent = se.IsEnterCandidatesAbsent?"Đã nhập":"Chưa nhập",
+                                    IsMatchingTestScore = se.IsMatchingTestScore?"Đã nhập":"Chưa nhập"
+                                }).ToListAsync();
+            // Tạo một workbook Excel mới
+            using (var package = new ExcelPackage())
+            {
+                var worksheet1 = package.Workbook.Worksheets.Add("sheet1");
+                worksheet1.Cells["A1"].Value = "#";
+                worksheet1.Cells["B1"].Value = "Mã môn";
+                worksheet1.Cells["C1"].Value = "Tên môn";
+                worksheet1.Cells["D1"].Value = "Túi bài thi";
+                worksheet1.Cells["E1"].Value = "Nhập vắng thi";
+                worksheet1.Cells["F1"].Value = "Nhập Điểm";
+                worksheet1.Cells["A1:F1"].Style.Font.Bold = true;
+                for (int i = 0; i < subjectExams.Count; i++)
+                {
+                    subjectExams[i].RowNumber = i + 1;
+                }
+                worksheet1.Cells["A2"].LoadFromCollection(subjectExams, false);
+                var headerRange1 = worksheet1.Cells["A1:F1"];
+                var dataRange1 = worksheet1.Cells["A1:F" + (subjectExams.Count + 1)];
+                dataRange1.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                dataRange1.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                dataRange1.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                dataRange1.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                headerRange1.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                dataRange1.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                worksheet1.Cells[worksheet1.Dimension.Address].AutoFitColumns();
+                // Tạo một stream để lưu trữ dữ liệu của tệp Excel
+                var stream = new MemoryStream();
+                
+                // Lưu workbook vào stream
+                package.SaveAs(stream);
+
+                // Thiết lập vị trí của stream về đầu
+                stream.Position = 0;
+
+                // Trả về một file tải xuống có tên "RegistrationCodes.xlsx" và kiểu dữ liệu là "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "RegistrationCodes.xlsx");
+            }
         }
 
         private bool SubjectExamsExists(Guid id)
