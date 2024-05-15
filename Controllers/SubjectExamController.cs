@@ -91,7 +91,6 @@ namespace TestingSoftwareAPI.Controllers
             }
             return subjectExam;
         }
-
         // GET: api/SubjectExam/5
         [HttpGet("{id}")]
         public async Task<ActionResult<SubjectExam>> GetSubjectExams(Guid id)
@@ -105,7 +104,6 @@ namespace TestingSoftwareAPI.Controllers
 
             return subjectExams;
         }
-
         // PUT: api/SubjectExam/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
@@ -178,7 +176,6 @@ namespace TestingSoftwareAPI.Controllers
             }
             return "Done";
         }
-
         // POST: api/SubjectExam
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
@@ -189,7 +186,6 @@ namespace TestingSoftwareAPI.Controllers
 
             return CreatedAtAction("GetSubjectExams", new { id = subjectExams.SubjectExamID }, subjectExams);
         }
-
         // DELETE: api/SubjectExam/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteSubjectExams(Guid id)
@@ -199,10 +195,8 @@ namespace TestingSoftwareAPI.Controllers
             {
                 return NotFound();
             }
-
             _context.SubjectExam.Remove(subjectExams);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
         [HttpGet("download-excel-file")]
@@ -257,7 +251,6 @@ namespace TestingSoftwareAPI.Controllers
                 return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "RegistrationCodes.xlsx");
             }
         }
-
         private bool SubjectExamsExists(Guid id)
         {
             return _context.SubjectExam.Any(e => e.SubjectExamID == id);

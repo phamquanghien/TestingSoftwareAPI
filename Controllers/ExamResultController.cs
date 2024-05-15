@@ -5,8 +5,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using EFCore.BulkExtensions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
+using OfficeOpenXml;
+using SQLitePCL;
 using TestingSoftwareAPI.Data;
 using TestingSoftwareAPI.Models;
 using TestingSoftwareAPI.Models.Process;
@@ -40,6 +44,18 @@ namespace TestingSoftwareAPI.Controllers
         {
             return await _context.ExamResult.Where(m => m.ExamId == examID && m.ExamBag == examBag && m.IsActive == true).ToListAsync();
         }
+        [HttpGet("admin-get-by-student-code")]
+        public async Task<ActionResult<IEnumerable<ExamResult>>> AdminGetByStudentCode (int examID, string subjectCode, string studentCode)
+        {
+            var examResult = await (from er in _context.ExamResult
+                            join rc in _context.RegistrationCode on er.RegistrationCodeNumber equals rc.RegistrationCodeNumber
+                            join se in _context.StudentExam on rc.StudentExamID equals se.StudentExamID
+                            join std in _context.Student on se.StudentCode equals std.StudentCode
+                            where se.ExamId == examID && se.StudentCode == studentCode && se.SubjectCode == subjectCode
+                            select er
+                            ).ToListAsync();
+            return examResult;
+        }
 
         // GET: api/ExamResult/5
         [HttpGet("{id}")]
@@ -54,6 +70,56 @@ namespace TestingSoftwareAPI.Controllers
 
             return examResult;
         }
+        [HttpGet("admin-download-by-exam-bag")]
+        public async Task<IActionResult> AdminDownloadByExamBag(int examID, int examBag)
+        {
+            var examResult = await (from regCode in _context.RegistrationCode
+                            join er in _context.ExamResult on regCode.RegistrationCodeNumber equals er.RegistrationCodeNumber
+                            join stdEx in _context.StudentExam on regCode.StudentExamID equals stdEx.StudentExamID
+                            join std in _context.Student on stdEx.StudentCode equals std.StudentCode
+                            where er.ExamId == examID && er.ExamBag == examBag
+                            select new ExamResultVM {
+                                StudentCode = stdEx.StudentCode,
+                                LastName = std.LastName,
+                                FirstName = std.FirstName,
+                                AverageScore = er.AverageScore
+                            }).ToListAsync();
+            using (var package = new ExcelPackage())
+            {
+                var worksheet1 = package.Workbook.Worksheets.Add("sheet1");
+                worksheet1.Cells["A1"].Value = "#";
+                worksheet1.Cells["B1"].Value = "Mã Sinh viên";
+                worksheet1.Cells["C1"].Value = "Họ lót";
+                worksheet1.Cells["D1"].Value = "Tên";
+                worksheet1.Cells["E1"].Value = "Điểm";
+                worksheet1.Cells["A1:E1"].Style.Font.Bold = true;
+                for (int i = 0; i < examResult.Count; i++)
+                {
+                    examResult[i].RowNumber = i + 1;
+                }
+                worksheet1.Cells["A2"].LoadFromCollection(examResult, false);
+                var headerRange1 = worksheet1.Cells["A1:E1"];
+                var dataRange1 = worksheet1.Cells["A1:E" + (examResult.Count + 1)];
+                dataRange1.Style.Border.Top.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                dataRange1.Style.Border.Bottom.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                dataRange1.Style.Border.Left.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                dataRange1.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
+                headerRange1.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                dataRange1.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                worksheet1.Cells[worksheet1.Dimension.Address].AutoFitColumns();
+                // Tạo một stream để lưu trữ dữ liệu của tệp Excel
+                var stream = new MemoryStream();
+                
+                // Lưu workbook vào stream
+                package.SaveAs(stream);
+
+                // Thiết lập vị trí của stream về đầu
+                stream.Position = 0;
+
+                // Trả về một file tải xuống có tên "RegistrationCodes.xlsx" và kiểu dữ liệu là "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                return File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "ExamResult.xlsx");
+            }
+        }
 
         // PUT: api/ExamResult/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
@@ -64,12 +130,27 @@ namespace TestingSoftwareAPI.Controllers
             {
                 return BadRequest();
             }
-
-            _context.Entry(examResult).State = EntityState.Modified;
+            var updateExamResult = await _context.ExamResult.FindAsync(id);
+            try {
+                var score = Convert.ToDouble(examResult.ReviewScore);
+                if (score >= 0 && score <= 10) {
+                    updateExamResult.ReviewScore = score.ToString();
+                    updateExamResult.AverageScore = score.ToString();
+                    updateExamResult.IsReview = true;
+                }
+                else {
+                    return Ok("Dữ liệu không hợp lệ!");
+                }
+            } catch {
+                return BadRequest();
+            }
+            
+            _context.Entry(updateExamResult).State = EntityState.Modified;
 
             try
             {
                 await _context.SaveChangesAsync();
+                return Ok("Cập nhật điểm thi thành công");
             }
             catch (DbUpdateConcurrencyException)
             {
