@@ -102,20 +102,24 @@ namespace TestingSoftwareAPI.Controllers
             {
                 return NotFound();
             }
-            else if(exam.Status == true) return Ok("Kỳ thi đã bị khoá, vui lòng liên hệ quản trị viên!");
-            else {
+            else if (exam.Status == true) return Ok("Kỳ thi đã bị khoá, vui lòng liên hệ quản trị viên!");
+            else
+            {
                 var studentExams = _studentQuery.GetStudentExamByExamID(examId);
-                if(studentExams.Result.Count==0) {
+                if (studentExams.Result.Count == 0)
+                {
                     return Ok("Cần nhập danh sách thí sinh dự thi trước khi sinh phách!");
                 }
-                else {
-                    if(isOverGenRegCode) {
+                else
+                {
+                    if (isOverGenRegCode)
+                    {
                         await _context.BulkDeleteAsync(await _context.RegistrationCode.Where(m => m.ExamId == examId).ToListAsync());
                     }
                     var list = _studentQuery.getListUnregisteredCodeByExamID(examId);
-                    await _context.RegistrationCode.AddRangeAsync (list);
+                    await _context.RegistrationCode.AddRangeAsync(list);
                     await _context.BulkSaveChangesAsync();
-                    
+
                     return Ok("Sinh thành công " + list.Count + " phách");
                 }
             }
@@ -147,23 +151,23 @@ namespace TestingSoftwareAPI.Controllers
 
             return NoContent();
         }
-        
+
         [HttpGet("download-excel-file")]
         public async Task<IActionResult> DownloadExcel(int examID, int examBag)
         {
             // Truy vấn dữ liệu từ cơ sở dữ liệu
             var registrationCodeNumbers = await (from regisCode in _context.RegistrationCode
-                                                join stdExam in _context.StudentExam on regisCode.StudentExamID equals stdExam.StudentExamID
-                                                where stdExam.ExamId == examID && stdExam.ExamBag == examBag
-                                                select regisCode.RegistrationCodeNumber).ToListAsync();
+                                                 join stdExam in _context.StudentExam on regisCode.StudentExamID equals stdExam.StudentExamID
+                                                 where stdExam.ExamId == examID && stdExam.ExamBag == examBag
+                                                 select regisCode.RegistrationCodeNumber).ToListAsync();
             var listVT = await (from regisCode in _context.RegistrationCode
-                                                join stdExam in _context.StudentExam on regisCode.StudentExamID equals stdExam.StudentExamID
-                                                where stdExam.ExamId == examID && stdExam.ExamBag == examBag && stdExam.IsActive == false
-                                                select regisCode.RegistrationCodeNumber).ToListAsync();
+                                join stdExam in _context.StudentExam on regisCode.StudentExamID equals stdExam.StudentExamID
+                                where stdExam.ExamId == examID && stdExam.ExamBag == examBag && stdExam.IsActive == false
+                                select regisCode.RegistrationCodeNumber).ToListAsync();
             var listDT = await (from regisCode in _context.RegistrationCode
-                                                join stdExam in _context.StudentExam on regisCode.StudentExamID equals stdExam.StudentExamID
-                                                where stdExam.ExamId == examID && stdExam.ExamBag == examBag && stdExam.IsActive == true
-                                                select regisCode.RegistrationCodeNumber).ToListAsync();
+                                join stdExam in _context.StudentExam on regisCode.StudentExamID equals stdExam.StudentExamID
+                                where stdExam.ExamId == examID && stdExam.ExamBag == examBag && stdExam.IsActive == true
+                                select regisCode.RegistrationCodeNumber).ToListAsync();
 
             // Tạo một workbook Excel mới
             using (var package = new ExcelPackage())
@@ -182,7 +186,7 @@ namespace TestingSoftwareAPI.Controllers
                 dataRange1.Style.Border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Thin;
                 headerRange1.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
                 dataRange1.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
-                
+
                 var worksheet2 = package.Workbook.Worksheets.Add("sheet2");
                 worksheet2.Cells["A1"].Value = "Phach";
                 worksheet2.Cells["B1"].Value = "Diem1";
@@ -214,7 +218,7 @@ namespace TestingSoftwareAPI.Controllers
                 dataRange3.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
                 // Tạo một stream để lưu trữ dữ liệu của tệp Excel
                 var stream = new MemoryStream();
-                
+
                 // Lưu workbook vào stream
                 package.SaveAs(stream);
 
@@ -230,28 +234,25 @@ namespace TestingSoftwareAPI.Controllers
         public IActionResult DownloadRegistrationCodeFile()
         {
             var result = (from stdEx in _context.StudentExam
-                        join std in _context.Student
-                            on stdEx.StudentCode equals std.StudentCode
-                        join regCode in _context.RegistrationCode
-                            on stdEx.StudentExamID equals regCode.StudentExamID
-                        join subject in _context.Subject
-                            on stdEx.SubjectCode equals subject.SubjectCode
-                        join exam in _context.Exam
-                            on stdEx.ExamId equals exam.ExamId
-                        where stdEx.ExamId == 1
-                        select new RegistrationCodeListVM
-                        {
-                            RegistrationCodeNumber = regCode.RegistrationCodeNumber,
-                            StudentExamID = stdEx.StudentExamID,
-                            ExamId = stdEx.ExamId,
-                            StudentCode = stdEx.StudentCode,
-                            LastName = std.LastName,
-                            FirstName = std.FirstName,
-                            SubjectCode = stdEx.SubjectCode,
-                            SubjectName = subject.SubjectName,
-                            ExamBag = stdEx.ExamBag,
-                            ExamCode = exam.ExamCode
-                        }).ToList().Take(100);
+                          join std in _context.Student
+                              on stdEx.StudentCode equals std.StudentCode
+                          join regCode in _context.RegistrationCode
+                              on stdEx.StudentExamID equals regCode.StudentExamID
+                          join subject in _context.Subject
+                              on stdEx.SubjectCode equals subject.SubjectCode
+                          join exam in _context.Exam
+                              on stdEx.ExamId equals exam.ExamId
+                          where stdEx.ExamId == 1
+                          select new RegistrationCodeListVM
+                          {
+                              RegistrationCodeNumber = regCode.RegistrationCodeNumber,
+                              StudentCode = stdEx.StudentCode,
+                              LastName = std.LastName,
+                              FirstName = std.FirstName,
+                              SubjectName = subject.SubjectName,
+                              ExamBag = stdEx.ExamBag,
+                              ExamCode = exam.ExamCode
+                          }).ToList().Take(100);
             using (MemoryStream stream = new MemoryStream())
             {
                 PdfFont font = PdfFontFactory.CreateFont("Uploads/fonts/Arial.ttf", PdfEncodings.IDENTITY_H);
@@ -259,21 +260,23 @@ namespace TestingSoftwareAPI.Controllers
                 var pdf = new PdfDocument(writer);
                 pdf.SetDefaultPageSize(PageSize.A4);
                 var document = new iText.Layout.Document(pdf, PageSize.A4.Rotate());
-                document.SetMargins(10,10,10,10);
+                document.SetMargins(10, 10, 10, 10);
                 Table table = new Table(UnitValue.CreatePercentArray(4)).UseAllAvailableWidth();
                 float columnWidth = (float)(PageSize.A4.GetWidth() / 2.0);
                 float columnHeight = (float)(PageSize.A4.GetHeight() / 28.0);
                 int count = 0;
                 foreach (var item in result)
                 {
-                    for(int i = 0; i < 4; i++)
+                    for (int i = 0; i < 4; i++)
                     {
-                        if(i==0 || i == 2)
+                        if (i == 0 || i == 2)
                         {
                             Cell studentCodeCell = new Cell().SetHeight(columnHeight).Add(new Paragraph($"{++count}-{item.StudentCode} - {item.RegistrationCodeNumber}\n {item.FirstName} {item.LastName}")).SetFont(font)
                                                 .SetFontSize(8).SetTextAlignment(TextAlignment.CENTER);
                             table.AddCell(studentCodeCell);
-                        } else {
+                        }
+                        else
+                        {
                             Cell registrationCodeCell = new Cell().SetWidth(columnWidth).SetHeight(columnHeight).SetBorder(Border.NO_BORDER).SetTextAlignment(TextAlignment.CENTER);
                             BarcodeQRCode qrCode = new BarcodeQRCode(item.RegistrationCodeNumber.ToString());
                             PdfFormXObject qrCodeObject = qrCode.CreateFormXObject(ColorConstants.BLACK, pdf);
@@ -289,13 +292,14 @@ namespace TestingSoftwareAPI.Controllers
                             table.AddCell(registrationCodeCell);
                         }
                     }
-                    
+
                 }
                 document.Add(table);
                 document.Close();
                 return File(stream.ToArray(), "application/pdf", "Students.pdf");
             }
         }
+
         [HttpGet("tai-file-phach")]
         public IActionResult TaiFile(int examBag, int examId)
         {
@@ -312,12 +316,9 @@ namespace TestingSoftwareAPI.Controllers
                           select new RegistrationCodeListVM
                           {
                               RegistrationCodeNumber = regCode.RegistrationCodeNumber,
-                              StudentExamID = stdEx.StudentExamID,
-                              ExamId = stdEx.ExamId,
                               StudentCode = stdEx.StudentCode,
                               LastName = std.LastName,
                               FirstName = std.FirstName,
-                              SubjectCode = stdEx.SubjectCode,
                               SubjectName = subject.SubjectName,
                               ExamBag = stdEx.ExamBag,
                               ExamCode = exam.ExamCode
@@ -357,83 +358,17 @@ namespace TestingSoftwareAPI.Controllers
                 return File(stream.ToArray(), "application/pdf", "Students.pdf");
             }
         }
-        [HttpGet("Download-file")]
-        public IActionResult DownloadFile(int id)
-        {
-            var result = (from stdEx in _context.StudentExam
-                        join std in _context.Student
-                            on stdEx.StudentCode equals std.StudentCode
-                        join regCode in _context.RegistrationCode
-                            on stdEx.StudentExamID equals regCode.StudentExamID
-                        join subject in _context.Subject
-                            on stdEx.SubjectCode equals subject.SubjectCode
-                        where stdEx.ExamId == id
-                        select new RegistrationCodeListVM
-                        {
-                            RegistrationCodeNumber = regCode.RegistrationCodeNumber,
-                            StudentExamID = stdEx.StudentExamID,
-                            ExamId = stdEx.ExamId,
-                            StudentCode = stdEx.StudentCode,
-                            LastName = std.LastName,
-                            FirstName = std.FirstName,
-                            SubjectCode = stdEx.SubjectCode,
-                            SubjectName = subject.SubjectName
-                        }).ToList().Take(100);
-
-            using (MemoryStream stream = new MemoryStream())
-            {
-                PdfFont font = PdfFontFactory.CreateFont("Uploads/fonts/Arial.ttf", PdfEncodings.IDENTITY_H);
-                var writer = new PdfWriter(stream);
-                var pdf = new PdfDocument(writer);
-                pdf.SetDefaultPageSize(PageSize.A4);
-                var document = new iText.Layout.Document(pdf);
-                document.SetMargins(10,0,10,0);
-
-                int numberOfMainColumns = 2;
-                int numberOfSmallColumns = 2;
-
-                List<Table> mainColumns = new List<Table>();
-
-                for (int i = 0; i < numberOfMainColumns; i++)
-                {
-                    // Tạo một bảng với số lượng cột nhỏ
-                    Table mainColumn = new Table(numberOfSmallColumns, false);
-                    mainColumn.SetBorder(Border.NO_BORDER);
-                    mainColumns.Add(mainColumn);
-                }
-
-                int count = 0;
-                foreach (var student in result)
-                {
-                    Table currentMainColumn = mainColumns[count % numberOfMainColumns];
-                    AddColumnToTable(currentMainColumn, student, font, pdf,count+1);
-                    count++;
-                    if (count % (numberOfMainColumns * numberOfSmallColumns) == 0)
-                    {
-                        count = 0;
-                    }
-                }
-                foreach (var mainColumn in mainColumns)
-                {
-                    // Đặt kích thước của mỗi cột trong bảng
-                    mainColumn.SetWidth(PageSize.A4.GetWidth()/2);
-                    document.Add(mainColumn);
-                }
-                document.Close();
-                return File(stream.ToArray(), "application/pdf", "Students.pdf");
-            }
-        }
         private void AddColumnToTable(Table currentMainColumn, RegistrationCodeListVM student, PdfFont font, PdfDocument pdf, int stt)
         {
             Table currentSmallColumn = new Table(UnitValue.CreatePercentArray(2)).UseAllAvailableWidth();
             float columnWidth = (float)(PageSize.A4.GetWidth() / 4.0);
             float columnHeight = (float)(PageSize.A4.GetHeight() / 32.0);
-            Cell studentCodeCell = new Cell().SetWidth(columnWidth).SetHeight(columnHeight).SetBorder(Border.NO_BORDER).Add(new Paragraph($"{stt}-{student.StudentCode} - {student.RegistrationCodeNumber}\n {student.LastName} {student.FirstName}")).SetFont(font)
+            Cell studentCodeCell = new Cell().SetWidth(columnWidth).SetHeight(columnHeight).SetBorder(Border.NO_BORDER).Add(new Paragraph($"{stt}-{student.StudentCode} - {student.RegistrationCodeNumber}\n {student.FirstName} {student.LastName}")).SetFont(font)
                                                 .SetFontSize(8).SetTextAlignment(TextAlignment.CENTER);
             currentSmallColumn.AddCell(studentCodeCell);
 
             Cell registrationCodeCell = new Cell().SetWidth(columnWidth).SetHeight(columnHeight).SetBorder(Border.NO_BORDER).SetTextAlignment(TextAlignment.CENTER);
-            
+
             BarcodeQRCode qrCode = new BarcodeQRCode(student.RegistrationCodeNumber.ToString());
             PdfFormXObject qrCodeObject = qrCode.CreateFormXObject(ColorConstants.BLACK, pdf);
             Image qrCodeImage = new Image(qrCodeObject);
