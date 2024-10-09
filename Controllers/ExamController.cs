@@ -32,6 +32,22 @@ namespace TestingSoftwareAPI.Controllers
         {
             return await _context.Exam.Where(m => m.Status == false).OrderByDescending(m => m.ExamId).ToListAsync();
         }
+        [HttpGet("check-exam-code/{examCode}")]
+        public async Task<IActionResult> CheckExamCodeExist(string examCode)
+        {
+            if (string.IsNullOrEmpty(examCode))
+                return BadRequest("Exam Code is required.");
+            var isExist = await _context.Exam.AnyAsync(e => e.ExamCode == examCode);
+            return Ok(isExist);
+        }
+        [HttpGet("check-exam-code/{examId}/{examCode}")]
+        public async Task<IActionResult> CheckExamCodeExist(int examId, string examCode)
+        {
+            if (string.IsNullOrEmpty(examCode))
+                return BadRequest("Exam Code is required.");
+            var isExist = await _context.Exam.AnyAsync(e => e.ExamCode == examCode && e.ExamId != examId);
+            return Ok(isExist);
+        }
 
         // GET: api/Exam/5
         [HttpGet("{id}")]
@@ -95,14 +111,6 @@ namespace TestingSoftwareAPI.Controllers
             await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetExam", new { id = exam.ExamId }, exam);
-        }
-        [HttpGet("check-exam-code/{examCode}")]
-        public async Task<IActionResult> CheckExamCodeExist(string examCode)
-        {
-            if (string.IsNullOrEmpty(examCode))
-                return BadRequest("Exam Code is required.");
-            var isExist = await _context.Exam.AnyAsync(e => e.ExamCode == examCode);
-            return Ok(isExist);
         }
 
         // DELETE: api/Exam/5
