@@ -24,15 +24,10 @@ namespace TestingSoftwareAPI.Controllers
     {
         private readonly ApplicationDbContext _context;
         private ExcelProcess _excelProcess = new ExcelProcess();
-        private StudentProcess _studentProcess = new StudentProcess();
-        private SubjectProcess _subjectProcess = new SubjectProcess();
-        private SubjectExamProcess _subjectExamProcess = new SubjectExamProcess();
-
         public ExamResultController(ApplicationDbContext context)
         {
             _context = context;
         }
-
         // GET: api/ExamResult
         [HttpGet("get-by-examID-examBag-all")]
         public async Task<ActionResult<IEnumerable<ExamResult>>> GetExamResultAll(int examID, int examBag)
@@ -131,6 +126,7 @@ namespace TestingSoftwareAPI.Controllers
                 return BadRequest();
             }
             var updateExamResult = await _context.ExamResult.FindAsync(id);
+            if (updateExamResult == null) return BadRequest();
             try {
                 var score = Convert.ToDouble(examResult.ReviewScore);
                 if (score >= 0 && score <= 10) {
@@ -163,8 +159,6 @@ namespace TestingSoftwareAPI.Controllers
                     throw;
                 }
             }
-
-            return NoContent();
         }
 
         // POST: api/ExamResult
@@ -255,6 +249,7 @@ namespace TestingSoftwareAPI.Controllers
                 if(listExcelVT.Count() == 0 && listThieuBaiThi.Count() == 0) {
                     var subjectExamCode = await _context.SubjectExam.Where(m => m.ExamId == examId && m.ExamBag == examBag).Select(m => m.SubjectExamID).FirstOrDefaultAsync();
                     var updateSubjectExam = await _context.SubjectExam.FindAsync(subjectExamCode);
+                    if(updateSubjectExam == null) return "Dữ liệu không hợp lệ!";
                     SubjectExam.MatchingTestScore status = updateSubjectExam.MatchingTestScoreStatus;
                     if(status == SubjectExam.MatchingTestScore.EnteredMatchingTestScore || status == SubjectExam.MatchingTestScore.ReenterMatchingTestScore) {
                         //remove data exam result old
@@ -330,6 +325,7 @@ namespace TestingSoftwareAPI.Controllers
             else {
                 HashSet<int> seenRegistrationCodeNumbers = new HashSet<int>();
                 var exam = await _context.Exam.FindAsync(examID);
+                if (exam == null) return "Dữ liệu không hợp lệ";
                 int startRegistrationCode = exam.StartRegistrationCode;
                 for(int i = 0; i < lecturersScanCodes.Count(); i++)
                 {
@@ -382,3 +378,5 @@ namespace TestingSoftwareAPI.Controllers
         }
     }
 }
+
+

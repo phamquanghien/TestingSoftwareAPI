@@ -5,12 +5,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace TestingSoftwareAPI.Models
 {
     [Table("Students")]
-    public partial class Student
+    public class Student
     {
         [Key]
         [MaxLength(50)]
         [Required]
-        public string StudentCode { get; set; }
+        public string? StudentCode { get; set; }
         [MaxLength(15)]
         public string? LastName { get; set; }
 

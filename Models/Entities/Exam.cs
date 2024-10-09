@@ -8,17 +8,17 @@ namespace TestingSoftwareAPI.Models
         public int ExamId { get; set; }
         [Display(Name = "Mã kỳ thi")]
         [Required]
-        public string ExamCode { get; set; }
+        public string? ExamCode { get; set; }
         [Display(Name = "Tên kỳ thi")]
         [Required]
-        public string ExamName { get; set; }
+        public string? ExamName { get; set; }
         [DataType(DataType.Date)]
         [Display(Name = "Ngày tạo")]
         [DisplayFormat(ApplyFormatInEditMode = true, DataFormatString = "{0:dd/MM/yyyy}")]
         public DateTime CreateDate { get; set; } = DateTime.Now;
         [Display(Name = "Người tạo")]
         [Required]
-        public string CreatePerson { get; set; }
+        public string? CreatePerson { get; set; }
         [Display(Name = "Ghi chú")]
         public string? Note { get; set; }
 

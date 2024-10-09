@@ -77,24 +77,28 @@ namespace TestingSoftwareAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<Student>> PostStudent(Student student)
         {
-            _context.Student.Add(student);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (StudentExists(student.StudentCode))
+            if(ModelState.IsValid) {
+                if(string.IsNullOrEmpty(student.StudentCode)) return BadRequest();
+                _context.Student.Add(student);
+                try
                 {
-                    return Conflict();
+                    await _context.SaveChangesAsync();
                 }
-                else
+                catch (DbUpdateException)
                 {
-                    throw;
+                    if (StudentExists(student.StudentCode))
+                    {
+                        return Conflict();
+                    }
+                    else
+                    {
+                        throw;
+                    }
                 }
-            }
 
-            return CreatedAtAction("GetStudent", new { id = student.StudentCode }, student);
+                return CreatedAtAction("GetStudent", new { id = student.StudentCode }, student);
+            }
+            return BadRequest();
         }
 
         // DELETE: api/Student/5

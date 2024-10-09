@@ -25,12 +25,12 @@ namespace TestingSoftwareAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Exam>>> GetExam()
         {
-            return await _context.Exam.Where(m => m.IsDelete == false).ToListAsync();
+            return await _context.Exam.Where(m => m.IsDelete == false).OrderByDescending(m => m.ExamId).ToListAsync();
         }
         [HttpGet("get-exam-by-isActive")]
         public async Task<ActionResult<IEnumerable<Exam>>> GetExamByIsActive()
         {
-            return await _context.Exam.Where(m => m.Status == false).ToListAsync();
+            return await _context.Exam.Where(m => m.Status == false).OrderByDescending(m => m.ExamId).ToListAsync();
         }
 
         // GET: api/Exam/5
@@ -83,10 +83,26 @@ namespace TestingSoftwareAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<Exam>> PostExam(Exam exam)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            if (ExamExists(exam.ExamCode))
+            {
+                return BadRequest(new { message = "Exam Code đã tồn tại. Vui lòng nhập giá trị khác." });
+            }
             _context.Exam.Add(exam);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetExam", new { id = exam.ExamId }, exam);
+        }
+        [HttpGet("check-exam-code/{examCode}")]
+        public async Task<IActionResult> CheckExamCodeExist(string examCode)
+        {
+            if (string.IsNullOrEmpty(examCode))
+                return BadRequest("Exam Code is required.");
+            var isExist = await _context.Exam.AnyAsync(e => e.ExamCode == examCode);
+            return Ok(isExist);
         }
 
         // DELETE: api/Exam/5
@@ -100,7 +116,8 @@ namespace TestingSoftwareAPI.Controllers
             }
             var countStudentExam = _context.StudentExam.Where(x => x.ExamId == id).Select(m => m.StudentExamID).Count();
             if (countStudentExam < 1) _context.Exam.Remove(exam);
-            else {
+            else
+            {
                 exam.IsDelete = true;
                 _context.Entry(exam).State = EntityState.Modified;
             }
@@ -112,6 +129,10 @@ namespace TestingSoftwareAPI.Controllers
         private bool ExamExists(int id)
         {
             return _context.Exam.Any(e => e.ExamId == id);
+        }
+        private bool ExamExists(string examCode)
+        {
+            return _context.Exam.Any(e => e.ExamCode == examCode);
         }
     }
 }

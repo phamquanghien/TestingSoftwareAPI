@@ -23,7 +23,8 @@ namespace TestingSoftwareAPI.Models.Process
                 var uniqueRows = new HashSet<string>();
                 foreach (DataRow row in clonedTable.Rows)
                 {
-                    if (uniqueRows.Add(row[0].ToString()))
+                    var value = row[0]?.ToString(); 
+                    if (!string.IsNullOrEmpty(value) && uniqueRows.Add(value))
                     {
                         distinctDataTable.ImportRow(row);
                     }

@@ -27,7 +27,7 @@ namespace TestingSoftwareAPI.Controllers
         [HttpGet("admin-get-list-by-examId")]
         public async Task<ActionResult<IEnumerable<SubjectExam>>> AminGetSubjectExamByExamID(int examID)
         {
-            if (examID == 0 || examID == null)
+            if (examID == 0)
             {
                 return BadRequest("BadRequest");
             }
@@ -43,7 +43,7 @@ namespace TestingSoftwareAPI.Controllers
         [HttpGet("employee-get-by-exam-bag")]
         public async Task<ActionResult<SubjectExam>> EmployeeGetByExamBag(int examID, int examBag)
         {
-            if (examID == 0 || examBag == null)
+            if (examID == 0)
             {
                 return BadRequest("BadRequest");
             }
@@ -67,7 +67,7 @@ namespace TestingSoftwareAPI.Controllers
             
             var subjectExam = await _context.SubjectExam
                     .Include(m => m.Subject) // Bao gồm thông tin của Subject
-                    .Where(m => m.ExamId == examID && m.SubjectCode.Contains(subjectCode))
+                    .Where(m => m.ExamId == examID && m.SubjectCode != null && m.SubjectCode.Contains(subjectCode))
                     .ToListAsync();
             if(subjectExam == null) {
                 return NotFound();
@@ -142,6 +142,7 @@ namespace TestingSoftwareAPI.Controllers
                 return "Dữ liệu không hợp lệ";
             } else {
                 var subjectExam = await _context.SubjectExam.FindAsync(subjectExamID);
+                if (subjectExam == null) return "Dữ liệu không hợp lệ";
                 if (checkData) {
                     var IsEnterCandidatesAbsent = subjectExam.IsEnterCandidatesAbsent;
                     if (IsEnterCandidatesAbsent == true && dataUpdate == false) {

@@ -314,6 +314,7 @@ namespace TestingSoftwareAPI.Controllers
         {
             string messageResult = "";
             var dataFromExcel = _excelProcess.ExcelToDataTable(fileLocation);
+            if (dataFromExcel.Rows.Count == 0 || dataFromExcel == null) return "Dữ liệu không hợp lệ";
             for(int i = 0; i < dataFromExcel.Rows.Count; i++)
             {
                 try {

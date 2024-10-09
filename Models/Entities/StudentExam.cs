@@ -24,7 +24,7 @@ namespace TestingSoftwareAPI.Models
         [Required]
         public int ExamBag { get; set; }
         [Required]
-        public string StudentCode { get; set; }
+        public string? StudentCode { get; set; }
         [ForeignKey("StudentCode")]
         public Student? Student { get; set; }
         [Required]

@@ -241,12 +241,9 @@ namespace TestingSoftwareAPI.Controllers
                           select new RegistrationCodeListVM
                           {
                               RegistrationCodeNumber = regCode.RegistrationCodeNumber,
-                              StudentExamID = stdEx.StudentExamID,
-                              ExamId = stdEx.ExamId,
                               StudentCode = stdEx.StudentCode,
                               LastName = std.LastName,
                               FirstName = std.FirstName,
-                              SubjectCode = stdEx.SubjectCode,
                               SubjectName = subject.SubjectName,
                               ExamBag = stdEx.ExamBag,
                               ExamCode = exam.ExamCode

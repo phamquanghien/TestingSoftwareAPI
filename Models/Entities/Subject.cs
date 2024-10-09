@@ -8,9 +8,9 @@ namespace TestingSoftwareAPI.Models
     {
         [Key]
         [Required]
-        public string SubjectCode { get; set; }
+        public string? SubjectCode { get; set; }
         [Required]
-        public string SubjectName { get; set; }
+        public string? SubjectName { get; set; }
         public bool IsActive { get; set; } = true;
         public bool IsDelete { get; set; } = false;
     }

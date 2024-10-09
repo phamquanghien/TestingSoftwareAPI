@@ -10,11 +10,14 @@ namespace TestingSoftwareAPI.Models
         public Guid ExamResultID { get; set; }
         public int RegistrationCodeNumber { get; set; }
         [MaxLength(5)]
-        public string ExamResult1 { get; set; }
+        [Required]
+        public string? ExamResult1 { get; set; }
         [MaxLength(5)]
-        public string ExamResult2 { get; set; }
+        [Required]
+        public string? ExamResult2 { get; set; }
         [MaxLength(5)]
-        public string AverageScore { get; set; }
+        [Required]
+        public string? AverageScore { get; set; }
         [MaxLength(5)]
         public string? ReviewScore { get; set; }
         public int ExamId { get; set; }
